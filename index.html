@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Jakes Quadrant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="EN">
+  <h1>Jakes Quadrant</h1>
+
+  <!-- Menu Section for Contract Types -->
+  <div class="menu">
+    <span title="R_100" id="r100">100</span>
+    <span title="R_10" id="r10">10</span>
+    <span title="R_25" id="r25">25</span>
+    <span title="R_50" id="r50">50</span>
+    <span title="R_75" id="r75">75</span>
+    <span title="RDBEAR" id="rdbear">BEAR</span>
+    <span title="RDBULL" id="rdbull">BULL</span>
+  </div>
+
+  <!-- Place Column Section -->
+  <div id="placecol" class="placecol">
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span>
+  </div>
+
+  <!-- Signal Display Section -->
+  <div id="signal">Analyzing...</div>
+  <div id="sequence-display" style="margin: 10px 0; font-size: 16px; color: #333;"></div>
+
+  <!-- Chart Container Section -->
+  <div class="chartContainer" id="chartContainer"></div>
+  <div id="digits" class="digits">
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+  </div>
+
+  <!-- Head Column Section -->
+  <div id="headcol" class="headcol">
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+    <span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span><span class="_"></span>
+  </div>
+
+  <!-- Main Grid and Trading Controls Section -->
+  <br>
+  <div class="grid-container">
+    <table cellspacing="0" cellpadding="0">
+      <tbody>
+        <tr>
+          <td class="level-label">A</td>
+          <td class="blue" id="6-blue">6 b</td>
+          <td class="blue" id="10-blue">10 b</td>
+          <td class="red" id="0-red">0 r</td>
+          <td class="red" id="4-red">4 r</td>
+        </tr>
+        <tr>
+          <td class="level-label">B</td>
+          <td class="blue" id="5-blue">5 b</td>
+          <td class="blue" id="9-blue">9 b</td>
+          <td class="red" id="1-red">1 r</td>
+          <td class="red" id="5-red">5 r</td>
+        </tr>
+        <tr>
+          <td class="level-label">C</td>
+          <td class="blue" id="4-blue">4 b</td>
+          <td class="blue" id="8-blue">8 b</td>
+          <td class="red" id="2-red">2 r</td>
+          <td class="red" id="6-red">6 r</td>
+        </tr>
+        <tr>
+          <td class="level-label">D</td>
+          <td class="blue" id="3-blue">3 b</td>
+          <td class="blue" id="7-blue">7 b</td>
+          <td class="red" id="3-red">3 r</td>
+          <td class="red" id="7-red">7 r</td>
+        </tr>
+        <tr>
+          <td class="level-label">E</td>
+          <td class="blue" id="2-blue">2 b</td>
+          <td class="blue" id="6-blue">6 b</td>
+          <td class="red" id="4-red">4 r</td>
+          <td class="red" id="8-red">8 r</td>
+        </tr>
+        <tr>
+          <td class="level-label">F</td>
+          <td class="blue" id="1-blue">1 b</td>
+          <td class="blue" id="5-blue">5 b</td>
+          <td class="red" id="5-red">5 r</td>
+          <td class="red" id="9-red">9 r</td>
+        </tr>
+        <tr>
+          <td class="level-label">G</td>
+          <td class="blue" id="0-blue">0 b</td>
+          <td class="blue" id="4-blue">4 b</td>
+          <td class="red" id="6-red">6 r</td>
+          <td class="red" id="10-red">10 r</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="call-put-buttons">
+      <div class="call-put-grid">
+        <button id="call-button">CALL</button>
+        <button id="put-button">PUT</button>
+        <div class="ticks-selector">
+          <div class="selector-row"></div>
+          <label for="ticks-select">Ticks:</label>
+          <select id="ticks-select">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div class="selector-row">
+          <label for="stake">Stake:</label>
+          <input type="number" id="stake" value="2" step="0.01" min="0.01">
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Win/Loss Counter and Custom Clock -->
+  <div style="display: flex; justify-content: center; gap: 20px; margin: 10px 0;">
+    <span>Wins: <span id="wins">0</span></span>
+    <span>Losses: <span id="losses">0</span></span>
+    <button id="download-csv">Download Trade History (CSV)</button>
+    <div id="custom-clock"></div> <!-- New custom clock div -->
+  </div>
+
+  <!-- Account Information Section -->
+  <div id="account-info">
+    <span class="account-item" id="account-type">Account: Loading...</span>
+    <span class="account-item" id="balance">Balance: $0.00 USD</span>
+    <span class="account-item" id="profit">Profit: $0.00 USD</span>
+  </div>
+
+  <!-- Trading Parameters and API Token Section -->
+  <div style="display: flex; justify-content: center; gap: 20px; align-items: center; margin: 10px 0; background-color: rgb(133, 147, 165); flex-wrap: wrap;">
+    <div class="trading-system">
+      <label for="target-profit">Target Profit:</label>
+      <input type="number" id="target-profit" value="10000" step="1" min="0">
+      <label for="stop-loss">Stop Loss:</label>
+      <input type="number" id="stop-loss" value="1000" step="1" min="0">
+      <label for="trade-type-select">Trade Type:</label>
+      <select id="trade-type-select">
+        <option value="RISE_FALL">Rise/Fall</option>
+        <option value="HIGHER_LOWER">Higher/Lower</option>
+        <option value="TOUCH">Touch/No Touch</option>
+      </select>
+      <button id="update-trading-params">Update</button>
+    </div>
+    <div id="api-token-container">
+      <input type="text" id="api-token-input" placeholder="Enter Deriv API Token">
+      <button id="api-token-button">Set Token</button>
+      <button id="sound-toggle">Sound: OFF</button>
+    </div>
+    <button id="toggle-trade">Toggle Auto-Trading (OFF)</button>
+  </div>
+
+  <!-- Audio Elements for Alerts -->
+  <audio id="upSound" src="announcement.ogg" preload="auto"></audio>
+  <audio id="downSound" src="i-am-being-serious.ogg" preload="auto"></audio>
+
+  <!-- External Dependencies -->
+  <script src="canvasjs.min.js"></script>
+  <script src="script.js" type="module"></script>
+
+  <!-- Cloudflare Challenge Script -->
+  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'91a34ee1cd1c6777',t:'MTc0MDk0MzgyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
