@@ -10,7 +10,7 @@ if (menuActive) menuActive.classList.add("menu-active");
 // Initialize data arrays and trading variables
 let dataPoints = [], spot = [], digit = [], time = [], tic = [], thick = [], result = [];
 let balance = 100, profit = 0, autoTrade = false, apiToken = "", stake = 2, targetProfit = 10000, stopLoss = 1000, tradeType = "RISE_FALL";
-const app_id = 1089; // Deriv App ID (replace with your own if needed)
+const app_id = 69345; // Deriv App ID (replace with your own if needed)
 const connection = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${app_id}`);
 let api = new DerivAPIBasic({ connection });
 let soundEnabled = false;
