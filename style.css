@@ -492,29 +492,24 @@ table {
     font-size: 14px;
   }
 
-  .trading-system, #api-token-container {
+  .trading-system {
     flex-direction: column;
     align-items: center;
   }
-
   .trading-system input, #api-token-input, #trade-type-select, #ticks-select, #stake {
     width: 120px;
   }
-
   #toggle-trade, #api-token-button, .trading-system button {
     margin: 5px 0;
   }
-
   #account-info {
     flex-direction: column;
     align-items: center;
   }
-
   .menu span, .digits span, .headcol span, .placecol span {
     font-size: 10px;
   }
-
-  .chartContainer, .chartContainerDigit {
+  .chartContainer {
     min-width: 100px;
   }
 
