@@ -9,12 +9,15 @@ if (menuActive) menuActive.classList.add("menu-active");
 
 // Initialize data arrays and trading variables
 let dataPoints = [], spot = [], digit = [], time = [], tic = [], thick = [], result = [];
-let balance = 100, profit = 0, autoTrade = false, apiToken = "", stake = 2, targetProfit = 10000, stopLoss = 1000, tradeType = "RISE_FALL";
-const app_id = 69345; // Deriv App ID (replace with your own if needed)
+let balance = 100, profit = 0, autoTrade = false, apiToken = "", stake = 2, targetProfit = 100, stopLoss = 100, tradeType = "RISE_FALL";
+const app_id = 69345; // Deriv App ID
 const connection = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${app_id}`);
 let api = new DerivAPIBasic({ connection });
 let soundEnabled = false;
 let lastAlertTime = 0;
+let tickCount = 0; // Track total ticks
+let tradeInProgress = false; // Track trade state
+let tradeStartTick = 0; // Track when trade started
 
 // New variables for win/loss tracking and trade history
 let wins = 0, losses = 0;
@@ -55,18 +58,7 @@ chart.render();
 const ticksRequest = { ticks_history: index, adjust_start_time: 1, count: 21, end: "latest", start: 1, style: "ticks", subscribe: 1 };
 const tickSubscriber = () => api.subscribe(ticksRequest);
 
-// ============================================================
-// YOUR EXISTING CODE COMMENTED OUT (FOR REFERENCE)
-// ============================================================
-/*
-function analyzeTrend(lastFiveNumbers) {
-  // Your existing trend analysis logic
-}
-*/
-
-// ============================================================
-// NEW 4-TICK ANALYSIS BASED ON YOUR STRATEGY
-// ============================================================
+// Define levels with ranges for blue and red
 const levels = {
   A: { blue: [6, 10], red: [0, 4] },
   B: { blue: [5, 9], red: [1, 5] },
@@ -77,61 +69,102 @@ const levels = {
   G: { blue: [0, 4], red: [6, 10] }
 };
 
+// Get the level for a given number and color
 function getLevel(num, color) {
+  if (!["blue", "red"].includes(color) || typeof num !== "number" || isNaN(num)) {
+    console.error("Invalid color or number:", { num, color });
+    return null;
+  }
   for (let level in levels) {
     if (levels[level][color].includes(parseInt(num))) return level;
   }
   return null;
 }
 
-function analyze4TickTrend(lastFourNumbers) {
-  if (lastFourNumbers.length < 4) return "Analyzing...";
+// Analyze a 5-tick sequence based on level movement with directionality
+function analyze5TickTrend(sequenceStr) {
+  // Split string into array of [number, color] pairs
+  const ticks = [];
+  for (let i = 0; i < sequenceStr.length; i += 2) {
+    const num = parseInt(sequenceStr[i]);
+    const color = sequenceStr[i + 1] === 'b' ? 'blue' : 'red';
+    if (!isNaN(num)) ticks.push([num, color]);
+  }
+  if (ticks.length < 5) {
+    console.log("Invalid sequence length:", ticks.length, "Sequence:", sequenceStr);
+    return "Analyzing...";
+  }
 
-  const levelsSequence = lastFourNumbers.map(pair => {
-    const [num, color] = pair.split('');
-    return getLevel(num, color === 'b' ? 'blue' : 'red');
+  const levelsSequence = ticks.map(([num, color]) => {
+    const level = getLevel(num, color);
+    console.log(`Mapping ${num}${color} to ${level}`);
+    return level;
   });
 
-  const levelIndices = levelsSequence.map(level => "ABCDEFG".indexOf(level));
-  const parity = lastFourNumbers.map(pair => parseInt(pair[0]) % 2 === 0 ? 'even' : 'odd');
-  const colors = lastFourNumbers.map(pair => pair[1]);
+  if (levelsSequence.includes(null) || levelsSequence.length < 5) {
+    console.log("Invalid levels sequence:", levelsSequence);
+    return "Analyzing...";
+  }
 
-   // CALL TREND: Starts in G, F, E, D and moves up to D, C, B, A
-   const isCallTrend = levelsSequence.slice(0, 2).every(level => ['G', 'F', 'E', 'D'].includes(level)) &&
-   levelsSequence.slice(2).every(level => ['D', 'C', 'B', 'A'].includes(level));
+  // Calculate level index trend
+  const levelOrder = { A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6 };
+  const indices = levelsSequence.map(level => levelOrder[level]);
+  const trend = indices.reduce((acc, curr, i) => i > 0 ? acc + (curr < indices[i - 1] ? -1 : curr > indices[i - 1] ? 1 : 0) : acc, 0);
+  console.log("Trend indices:", indices, "Trend value:", trend);
 
- // PUT TREND: Starts in A, B, C, D and moves down to D, E, F, G
- const isPutTrend = levelsSequence.slice(0, 2).every(level => ['A', 'B', 'C', 'D'].includes(level)) &&
-   levelsSequence.slice(2).every(level => ['D', 'E', 'F', 'G'].includes(level));
+  // CALL: Significant upward trend with high-level presence
+  const isCallTrend = trend >= 2 && levelsSequence.some(level => ['A', 'B'].includes(level));
+  // PUT: Significant downward trend with low-level presence
+  const isPutTrend = trend <= -2 && levelsSequence.some(level => ['E', 'F', 'G'].includes(level));
+
   if (isCallTrend) return "CALL";
   if (isPutTrend) return "PUT";
   return "Analyzing...";
 }
 
-// Signal generation with trade recording
+// Signal generation with trade recording and cooldown
 function getSignal() {
-  if (digit.length < 4) {
-    console.log("Digit length < 4:", digit.length);
+  if (digit.length < 5) {
+    console.log("Digit length < 5:", digit.length);
     return;
   }
-  const lastFour = digit.slice(-4).map((d, i) =>
-    spot[spot.length - 4 + i] > spot[spot.length - 5 + i] ? `${d}b` : `${d}r`
-  );
-  console.log("Last four numbers:", lastFour);
+  const lastFive = digit.slice(-5).map((d, i) => {
+    if (i === 0 || spot.length < 6 + i) return `${d}b`; // Default to blue if insufficient data
+    const isUp = spot[spot.length - 5 + i] > spot[spot.length - 6 + i];
+    return `${d}${isUp ? 'b' : 'r'}`;
+  });
+  console.log("Last five numbers:", lastFive.join(''));
   const signal = document.getElementById("signal");
-  const trend = analyze4TickTrend(lastFour);
   const now = Date.now();
   const sequenceDisplay = document.getElementById("sequence-display");
 
+  // Check if trade is in progress (7 ticks = 14 seconds cooldown)
+  if (tradeInProgress) {
+    const ticksSinceTrade = tickCount - tradeStartTick;
+    console.log("Trade in progress, ticks since start:", ticksSinceTrade);
+    if (ticksSinceTrade < 7) return; // Wait 7 ticks
+    tradeInProgress = false; // Reset after cooldown
+    console.log("Trade cooldown complete, re-analyzing");
+  }
+
+  // Only evaluate signal every 5 seconds if no trade is active
+  if (now - lastAlertTime < 5000) {
+    console.log("Waiting for 5 seconds, time since last:", now - lastAlertTime);
+    return;
+  }
+
+  const trend = analyze5TickTrend(lastFive.join(''));
   console.log("Trend calculated:", trend);
-  if (trend !== "Analyzing..." && now - lastAlertTime >= 20000) { // 10-second delay
+  if (trend !== "Analyzing..." && now - lastAlertTime >= 10000) {
     signal.innerHTML = trend;
     signal.classList.remove("blueb", "redb");
     if (trend === "CALL") {
       signal.classList.add("blueb");
-      if (autoTrade) {
+      if (autoTrade || document.getElementById("call-button").clicked) { // Manual or auto trade
         placeTrade("CALL");
-        recordTrade(lastFour.join(','), "CALL");
+        recordTrade(lastFive.join(','), "CALL");
+        tradeInProgress = true;
+        tradeStartTick = tickCount;
       }
       if (soundEnabled) {
         const upSound = document.getElementById("upSound");
@@ -139,22 +172,24 @@ function getSignal() {
       }
     } else if (trend === "PUT") {
       signal.classList.add("redb");
-      if (autoTrade) {
+      if (autoTrade || document.getElementById("put-button").clicked) { // Manual or auto trade
         placeTrade("PUT");
-        recordTrade(lastFour.join(','), "PUT");
+        recordTrade(lastFive.join(','), "PUT");
+        tradeInProgress = true;
+        tradeStartTick = tickCount;
       }
       if (soundEnabled) {
         const downSound = document.getElementById("downSound");
         downSound.play().catch(error => console.error("DOWN sound play failed:", error));
       }
     }
-    sequenceDisplay.innerHTML = `${lastFour.join(',')} ${trend}`;
+    sequenceDisplay.innerHTML = `${lastFive.join(',')} ${trend}`;
     sequenceDisplay.style.backgroundColor = "#ffff99";
     lastAlertTime = now;
     setTimeout(() => {
       sequenceDisplay.style.backgroundColor = "";
       sequenceDisplay.innerHTML = "";
-    }, 20000);
+    }, 5000);
   } else {
     signal.innerHTML = "Analyzing...";
     signal.classList.remove("blueb", "redb");
@@ -162,9 +197,6 @@ function getSignal() {
   }
 }
 
-// ============================================================
-// REST OF YOUR CODE REMAINS UNCHANGED
-// ============================================================
 // Handle tick responses from Deriv API
 const ticksResponse = async res => {
   const data = JSON.parse(res.data);
@@ -182,9 +214,12 @@ const ticksResponse = async res => {
     updateChartsAndUI();
   }
   if (data.msg_type === "tick") {
+    console.log("Tick data received:", data.tick);
     spot.push(Number(data.tick.ask).toFixed(quantity));
     digit.push(spot[spot.length - 1].slice(-1));
     time.push(data.tick.epoch);
+    tickCount++; // Increment tick counter
+    console.log("Tick count:", tickCount);
     if (spot.length > 21) { spot.shift(); digit.shift(); time.shift(); }
     console.log("New tick:", spot[spot.length - 1], "Digit:", digit);
     resetGridColors();
@@ -211,7 +246,7 @@ function updateGridColors() {
   } else {
     console.error(`Grid element not found for ID: ${id}`);
   }
-}
+};
 
 // Reset grid colors to initial state
 function resetGridColors() {
@@ -219,7 +254,7 @@ function resetGridColors() {
     ["blue", "red", "toggle-blue", "toggle-red"].forEach(cls => cell.classList.remove(cls));
     cell.classList.add(cell.id.includes("blue") ? "blue" : "red");
   });
-}
+};
 
 // Update charts and UI with new data
 function updateChartsAndUI() {
@@ -258,7 +293,7 @@ function updateChartsAndUI() {
       span.textContent = '';
     }
   });
-}
+};
 
 // Place a trade via Deriv API
 async function placeTrade(type) {
@@ -272,7 +307,7 @@ async function placeTrade(type) {
   } catch (error) {
     console.error("Trade error:", error);
   }
-}
+};
 
 // Download trade history as CSV
 function downloadCSV() {
@@ -286,15 +321,15 @@ function downloadCSV() {
   a.download = "trades.csv";
   a.click();
   window.URL.revokeObjectURL(url);
-}
+};
 
 // Event listeners for user interactions
 document.getElementById("call-button").addEventListener("click", () => placeTrade("CALL"));
 document.getElementById("put-button").addEventListener("click", () => placeTrade("PUT"));
 document.getElementById("update-trading-params").addEventListener("click", () => {
   stake = parseFloat(document.getElementById("stake").value) || 2;
-  targetProfit = parseFloat(document.getElementById("target-profit").value) || 10000;
-  stopLoss = parseFloat(document.getElementById("stop-loss").value) || 1000;
+  targetProfit = parseFloat(document.getElementById("target-profit").value) || 100;
+  stopLoss = parseFloat(document.getElementById("stop-loss").value) || 100;
 });
 document.getElementById("trade-type-select").addEventListener("change", e => tradeType = e.target.value);
 document.getElementById("api-token-button").addEventListener("click", () => {
@@ -304,6 +339,7 @@ document.getElementById("api-token-button").addEventListener("click", () => {
     connection = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${app_id}`);
     api = new DerivAPIBasic({ connection });
     connection.addEventListener("open", async () => {
+      console.log("Connection opened"); // Debug connection
       await api.authorize({ authorize: apiToken });
       tickSubscriber();
     });
@@ -317,6 +353,9 @@ document.getElementById("toggle-trade").addEventListener("click", () => {
 document.getElementById("sound-toggle").addEventListener("click", () => {
   soundEnabled = !soundEnabled;
   document.getElementById("sound-toggle").textContent = `Sound: ${soundEnabled ? "ON" : "OFF"}`;
+  // Prevent layout shift by ensuring order
+  const container = document.querySelector('.trading-system');
+  if (container) container.style.flexDirection = 'row'; // Force row layout
 });
 document.getElementById("download-csv").addEventListener("click", downloadCSV);
 
@@ -324,12 +363,12 @@ document.getElementById("download-csv").addEventListener("click", downloadCSV);
 setInterval(() => {
   const customClock = document.getElementById("custom-clock");
   if (customClock) {
-    customClock.textContent = new Date().toUTCString(); // Display custom clock
-    customClock.style.color = "#333333"; // Match your theme
-    customClock.style.backgroundColor = "transparent"; // No red crap
-    customClock.style.border = "none"; // No borders
-    customClock.style.padding = "5px"; // Consistent padding
-    customClock.style.fontWeight = "bold"; // Make the clock bold
+    customClock.textContent = new Date().toUTCString();
+    customClock.style.color = "#333333";
+    customClock.style.backgroundColor = "transparent";
+    customClock.style.border = "none";
+    customClock.style.padding = "5px";
+    customClock.style.fontWeight = "bold";
   } else {
     console.error("Custom clock element not found!");
   }
